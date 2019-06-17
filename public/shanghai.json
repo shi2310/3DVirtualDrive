@@ -1,0 +1,86 @@
+{
+  "map": {
+    "length": 90,
+    "width": 142,
+    "granularity": 50,
+    "unit": "cm"
+  },
+  "start_area": {
+    "direction": 0,
+    "nodes": [
+      {
+        "x": 10,
+        "y": 10
+      }
+    ]
+  },
+  "obstacles": [
+    {
+      "coordinate": {
+        "x": 10,
+        "y": 10
+      },
+      "dimension": {
+        "length": 24,
+        "width": 122,
+        "height": 1
+      },
+      "tags": [
+        "parking_lot"
+      ]
+    },
+    {
+      "coordinate": {
+        "x": 10,
+        "y": 44
+      },
+      "dimension": {
+        "length": 24,
+        "width": 122,
+        "height": 1
+      },
+      "tags": [
+        "parking_lot"
+      ]
+    },
+    {
+      "coordinate": {
+        "x": 10,
+        "y": 78
+      },
+      "dimension": {
+        "length": 12,
+        "width": 122,
+        "height": 1
+      },
+      "tags": [
+        "parking_lot"
+      ]
+    }
+  ],
+  "traffic_rule": {
+    "stop": [],
+    "way": []
+  },
+  "critical_place": {
+    "Entry": [],
+    "parking": []
+  },
+  "landmarks": [
+    {
+      "coordinate": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "dimension": {
+        "length": 30,
+        "width": 90,
+        "height": 1
+      },
+      "tags": [
+        "stop_sign"
+      ]
+    }
+  ]
+}
