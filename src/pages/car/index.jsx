@@ -1,5 +1,5 @@
 import React, { PureComponent } from 'react';
-import _ from 'lodash';
+import axios from 'axios';
 import Drive from './Drive';
 
 class Index extends PureComponent {
@@ -29,39 +29,36 @@ class Index extends PureComponent {
   }
 
   freshFrame() {
-    setInterval(() => {
-      const vector3Array = [];
-      for (let i = 0; i < 10; i++) {
-        vector3Array.push({ x: _.random(-50, 50), y: -0.5, z: _.random(-50, 50) });
-      }
-      const objectsArray = [];
-      for (let i = 0; i < 3; i++) {
-        const width = _.random(1, 3.5),
-          length = _.random(1, 5);
-        objectsArray.push({
-          x: _.random(-length, length) * 10,
-          y: 0,
-          z: _.random(-width, width) * 10,
-          width,
-          height: 2,
-          length,
-        });
-      }
-
-      this.setState({
-        frame: {
-          speed: _.random(-1.5, 5),
-          wheelOrientation: _.random(-1, 1),
-          routingArray: vector3Array,
-          objectArray: objectsArray,
-        },
-      });
-    }, 1000);
+    axios.get('./data.json').then(rsp => {
+      let i = 0;
+      const timer = setInterval(() => {
+        let item = rsp.data[i];
+        if (item) {
+          const frame = {
+            carOrientation: -item.heading - Math.PI / 2,
+            position: item.position,
+            routingArray: item.routingArray,
+            objectArray: item.objectArray,
+          };
+          this.setState({
+            frame,
+          });
+        }
+        i++;
+        if (i === rsp.data.length) {
+          clearInterval(timer);
+        }
+      }, 100);
+    });
   }
 
   render() {
     const { map, frame } = this.state;
-    return map ? <Drive height={window.innerHeight - 4} map={map} frame={frame} /> : null;
+    return (
+      <div style={{ height: window.innerHeight - 4 }}>
+        {map ? <Drive map={map} frame={frame} /> : null}
+      </div>
+    );
   }
 }
 

@@ -1,13 +1,6 @@
 /* eslint-disable */
 export default THREE => {
   THREE.Car = (function() {
-    //车子方向
-    let carOrientation = 0;
-    //车轮直径
-    let wheelDiameter = 1;
-    //
-    let length = 1;
-
     let root = null;
     //场景中的左前轮对象
     let frontLeftWheelRoot = null;
@@ -25,8 +18,6 @@ export default THREE => {
     //方向盘
     let steeringWheel = null;
 
-    let loaded = false;
-
     function Car() {
       this.elemNames = {
         flWheel: 'wheel_fl',
@@ -35,11 +26,6 @@ export default THREE => {
         rrWheel: 'wheel_rr',
         steeringWheel: 'steering_wheel', // set to null to disable
       };
-
-      // 转弯半径
-      this.turningRadius = 75;
-      this.speed = 0;
-      this.wheelOrientation = 0;
 
       // 车轮转角轴
       this.wheelRotationAxis = 'x';
@@ -58,48 +44,28 @@ export default THREE => {
         root.position.x = x || 0;
         root.position.z = y || 0;
         // 车的角度
-        root.rotation.y = 1 * 0.02 * this.turningRadius;
+        root.rotation.y = direction;
 
         this.setupWheels();
-        this.computeDimensions();
-        loaded = true;
       },
-      //汽车的速度及车轮转向变化
-      setChange(speed, wheelOrientation) {
-        this.speed = speed;
-        this.wheelOrientation = wheelOrientation;
-
+      setChange(carOrientation, position) {
         // rotation while steering
-        frontLeftWheelRoot.rotation[this.wheelTurnAxis] = this.wheelOrientation;
-        frontRightWheelRoot.rotation[this.wheelTurnAxis] = this.wheelOrientation;
+        // frontLeftWheelRoot.rotation[this.wheelTurnAxis] = carOrientation * 0.02;
+        // frontRightWheelRoot.rotation[this.wheelTurnAxis] = carOrientation * 0.02;
 
         //方向盘的滚动
-        steeringWheel.rotation[this.steeringWheelTurnAxis] = this.wheelOrientation * 6;
-      },
-      //间隔时间内的渲染
-      render: function(delta) {
-        if (!loaded) return;
-
-        //向前的变量增量
-        var forwardDelta = -this.speed * delta;
-        // 车的方向
-        carOrientation -= forwardDelta * this.turningRadius * 0.02 * this.wheelOrientation;
+        steeringWheel.rotation[this.steeringWheelTurnAxis] = -carOrientation * 6;
 
         // 车的运动坐标随着时间以及汽车参数变化
-        root.position.x += Math.sin(carOrientation) * forwardDelta * length;
-        root.position.z += Math.cos(carOrientation) * forwardDelta * length;
+        root.position.x = position.x;
+        root.position.z = position.y;
         // 车的角度
         root.rotation.y = carOrientation;
 
-        // 角速比
-        var angularSpeedRatio = -2 / wheelDiameter;
-        //车轮变量增量
-        var wheelDelta = forwardDelta * angularSpeedRatio * length;
-
-        frontLeftWheel.rotation[this.wheelRotationAxis] -= wheelDelta;
-        frontRightWheel.rotation[this.wheelRotationAxis] -= wheelDelta;
-        backLeftWheel.rotation[this.wheelRotationAxis] -= wheelDelta;
-        backRightWheel.rotation[this.wheelRotationAxis] -= wheelDelta;
+        frontLeftWheel.rotation[this.wheelRotationAxis] -= 1;
+        frontRightWheel.rotation[this.wheelRotationAxis] -= 1;
+        backLeftWheel.rotation[this.wheelRotationAxis] -= 1;
+        backRightWheel.rotation[this.wheelRotationAxis] -= 1;
       },
       getPosition() {
         return { ...root.position };
@@ -119,15 +85,6 @@ export default THREE => {
 
         frontLeftWheelRoot.add(frontLeftWheel);
         frontRightWheelRoot.add(frontRightWheel);
-      },
-      computeDimensions: function() {
-        var bb = new THREE.Box3().setFromObject(frontLeftWheelRoot);
-        var size = new THREE.Vector3();
-        bb.getSize(size);
-        wheelDiameter = Math.max(size.x, size.y, size.z);
-        bb.setFromObject(root);
-        size = bb.getSize(size);
-        length = Math.max(size.x, size.y, size.z);
       },
     };
     return Car;

@@ -30,8 +30,8 @@ class Drive extends PureComponent {
       }
       //根据父组件传递的每一帧数据进行绘制
       if (this.props.frame && !_.isEqual(this.props.frame, prevProps.frame)) {
-        const { speed, wheelOrientation, routingArray, objectArray } = this.props.frame;
-        this.virtualDrive.carFrame(speed, wheelOrientation, routingArray, objectArray);
+        const { carOrientation, position, routingArray, objectArray } = this.props.frame;
+        this.virtualDrive.carFrame(carOrientation, position, routingArray, objectArray);
       }
     }
   }
@@ -43,7 +43,6 @@ class Drive extends PureComponent {
   }
 
   render() {
-    const { width, height } = this.props;
     return (
       <>
         <div className={style.info}>
@@ -54,7 +53,7 @@ class Drive extends PureComponent {
             onChange={this.ckbChange.bind(this)}
           />
         </div>
-        <div id="body" style={{ width, height, display: 'block' }} />
+        <div id="body" style={{ width: '100%', height: '100%', display: 'block' }} />
       </>
     );
   }
