@@ -1,11 +1,13 @@
 import React, { PureComponent } from 'react';
 import axios from 'axios';
 import Drive from './Drive';
+import style from './index.less';
 
 class Index extends PureComponent {
   state = {
     map: null,
     frame: null,
+    followCamera: false,
   };
 
   componentWillMount() {
@@ -16,7 +18,7 @@ class Index extends PureComponent {
         Accept: 'application/json',
       },
     })
-      .then(response => response.json()) //解析为Promise
+      .then(response => response.json())
       .then(data => {
         this.setState({
           map: data,
@@ -29,16 +31,16 @@ class Index extends PureComponent {
   }
 
   freshFrame() {
-    axios.get('./data.json').then(rsp => {
+    axios.get('http://localhost:3003/public/data.json').then(rsp => {
       let i = 0;
       const timer = setInterval(() => {
         let item = rsp.data[i];
         if (item) {
           const frame = {
-            carOrientation: -item.heading - Math.PI / 2,
-            position: item.position,
-            routingArray: item.routingArray,
-            objectArray: item.objectArray,
+            heading: item.localization.heading || 0,
+            localization: item.localization,
+            planning: item.path_planning.points || [],
+            perception: item.perception.objects || [],
           };
           this.setState({
             frame,
@@ -48,15 +50,25 @@ class Index extends PureComponent {
         if (i === rsp.data.length) {
           clearInterval(timer);
         }
-      }, 100);
+      }, 10);
+    });
+  }
+
+  ckbChange() {
+    this.setState({
+      followCamera: !this.state.followCamera,
     });
   }
 
   render() {
-    const { map, frame } = this.state;
+    const { map, frame, followCamera } = this.state;
     return (
       <div style={{ height: window.innerHeight - 4 }}>
-        {map ? <Drive map={map} frame={frame} /> : null}
+        <div className={style.info}>
+          汽车跟随视角:
+          <input type="checkbox" checked={followCamera} onChange={this.ckbChange.bind(this)} />
+        </div>
+        <Drive map={map} frame={frame} followCamera={followCamera} />
       </div>
     );
   }

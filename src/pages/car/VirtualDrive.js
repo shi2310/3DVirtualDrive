@@ -8,11 +8,11 @@ require('three/examples/js/loaders/DRACOLoader');
 require('three/examples/js/pmrem/PMREMGenerator');
 require('three/examples/js/pmrem/PMREMCubeUVPacker');
 
-require('three/examples/js/lines/LineSegmentsGeometry.js');
-require('three/examples/js/lines/LineGeometry.js');
-require('three/examples/js/lines/LineMaterial.js');
-require('three/examples/js/lines/LineSegments2.js');
-require('three/examples/js/lines/Line2.js');
+require('three/examples/js/lines/LineSegmentsGeometry');
+require('three/examples/js/lines/LineGeometry');
+require('three/examples/js/lines/LineMaterial');
+require('three/examples/js/lines/LineSegments2');
+require('three/examples/js/lines/Line2');
 
 Car(THREE);
 
@@ -24,16 +24,10 @@ export class VirtualDrive {
     })();
   }
 
-  //时钟记时，刷新的间隔
-  clock = new THREE.Clock();
   //汽车封装函数
   car = new THREE.Car();
-  //相机目标定位
-  cameraTarget = new THREE.Vector3();
   //每帧刷新时是否跟随相机
   followCamera = false;
-  //相机
-  camera;
   //场景
   scene;
   //地图2维宽高
@@ -66,6 +60,10 @@ export class VirtualDrive {
   drivePath = null;
   drivePathPoint = [];
 
+  //相机控制的旋转弧度
+  azimuthalAngle = 0; //水平旋转弧度
+  polarAngle = 0; //垂直旋转弧度
+
   async init(container, data) {
     const conWidth = container.clientWidth;
     const conHeight = container.clientHeight;
@@ -80,53 +78,62 @@ export class VirtualDrive {
     renderer.setSize(conWidth, conHeight);
     renderer.gammaOutput = true;
     renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.sortObjects = true;
     container.appendChild(renderer.domElement);
 
     //相机
-    this.camera = new THREE.PerspectiveCamera(75, conWidth / conHeight, 1, 10000);
-    this.camera.position.set(0, 70, 50);
+    const camera = new THREE.PerspectiveCamera(75, conWidth / conHeight, 1, 10000);
+    camera.position.set(0, 70, 50);
 
     //角度控制
-    this.orbitControls = new Orbitcontrols(this.camera, renderer.domElement);
+    this.orbitControls = new Orbitcontrols(camera, renderer.domElement);
     this.orbitControls.target = new THREE.Vector3(0, 0, 0); //控制焦点
     this.orbitControls.autoRotate = false;
-    this.orbitControls.zoomSpeed = 10;
+    this.orbitControls.zoomSpeed = 3;
     //上下翻转的最大仰视角和俯视角。范围0-Math.PI 弧度，一个pi代表180°
     this.orbitControls.minPolarAngle = 0;
     this.orbitControls.maxPolarAngle = 1.5;
+    this.orbitControls.addEventListener('change', function(e) {
+      // this.azimuthalAngle = e.target.getAzimuthalAngle();
+      // this.polarAngle = e.target.getPolarAngle();
+      // console.log(this.azimuthalAngle, this.polarAngle);
+    });
 
     //场景
     this.scene = new THREE.Scene();
     // this.scene.fog = new THREE.Fog(0xd7cbb1, 5, 80);
 
-    //地面
-    const ground = new THREE.Mesh(
-      new THREE.PlaneBufferGeometry(
-        this.mapWH.map_width,
-        this.mapWH.map_height,
-        map_size,
-        map_size,
-      ),
-      new THREE.MeshBasicMaterial({ color: 0xbbbbbb, opacity: 1, transparent: true }),
+    //创建矩形地面网格
+    const halfMapWidth = this.mapWH.map_width / 2;
+    const halfMapHeight = this.mapWH.map_height / 2;
+    const geometryX = new THREE.Geometry(); //创建点的集合
+    geometryX.vertices.push(
+      new THREE.Vector3(-halfMapWidth, 0, -halfMapHeight),
+      new THREE.Vector3(halfMapWidth, 0, -halfMapHeight),
     );
-    ground.position.set(0, -1, 0);
-    ground.rotation.x = -Math.PI / 2; //将平面沿着x轴进行旋转
-    this.scene.add(ground);
-
-    //网格--只能设置size为正方形
-    // var grid = new THREE.GridHelper(this.mapWH.map_width, map_size);
-    // grid.material.opacity = 0.2;
-    // grid.material.depthWrite = false;
-    // grid.material.transparent = true;
-    // this.scene.add(grid);
-
-    // 新建坐标轴
-    var axis = new THREE.AxesHelper(100);
-    // 在场景中添加坐标轴
-    this.scene.add(axis);
+    const geometryZ = new THREE.Geometry();
+    geometryZ.vertices.push(
+      new THREE.Vector3(-halfMapWidth, 0, -halfMapHeight),
+      new THREE.Vector3(-halfMapWidth, 0, halfMapHeight),
+    );
+    const material = new THREE.LineBasicMaterial({
+      color: 0x000000,
+      transparent: true,
+      opacity: 0.2,
+    });
+    const widthRate = this.mapWH.map_width / map_size;
+    const heightRate = this.mapWH.map_height / map_size;
+    for (var i = 0; i <= map_size; i++) {
+      var lineX = new THREE.Line(geometryX, material);
+      lineX.position.z = i * heightRate;
+      this.scene.add(lineX);
+      var lineZ = new THREE.Line(geometryZ, material);
+      lineZ.position.x = i * widthRate;
+      this.scene.add(lineZ);
+    }
 
     //字体加载
-    await this.loadFont();
+    this.loadFont();
 
     //立方体纹理（天空盒）
     await this.loadCubeTexture(renderer);
@@ -140,37 +147,28 @@ export class VirtualDrive {
     //渲染器自动渲染，每个可用帧都会调用的函数
     renderer.setAnimationLoop(() => {
       this.renderCar();
-      renderer.render(this.scene, this.camera);
+      renderer.render(this.scene, camera);
     });
   }
 
   //加载字体
   loadFont() {
-    return new Promise((resolve, reject) => {
-      new THREE.FontLoader().load(
-        'examples/fonts/optimer_bold.typeface.json',
-        font => {
-          this.textFont = font;
-          resolve();
-        },
-        null,
-        err => {
-          reject(err);
-        },
-      );
-    });
+    this.textFont = new THREE.FontLoader().parse(
+      require('assets/car/fonts/optimer_bold.typeface.json'),
+    );
   }
 
   //加载立方体纹理（天空盒）
   loadCubeTexture(renderer) {
+    //六张图片分别是朝前的（posz）、朝后的（negz）、朝上的（posy）、朝下的（negy）、朝右的（posx）和朝左的（negx）。
     return new Promise((resolve, reject) => {
       const urls = [
-        require('assets/skyboxsun25deg/px.jpg'),
-        require('assets/skyboxsun25deg/nx.jpg'),
-        require('assets/skyboxsun25deg/py.jpg'),
-        require('assets/skyboxsun25deg/ny.jpg'),
-        require('assets/skyboxsun25deg/pz.jpg'),
-        require('assets/skyboxsun25deg/nz.jpg'),
+        require('assets/car/skyboxsun25deg/px.jpg'),
+        require('assets/car/skyboxsun25deg/nx.jpg'),
+        require('assets/car/skyboxsun25deg/py.jpg'),
+        require('assets/car/skyboxsun25deg/ny.jpg'),
+        require('assets/car/skyboxsun25deg/pz.jpg'),
+        require('assets/car/skyboxsun25deg/nz.jpg'),
       ];
       //立方体纹理（天空盒）
       new THREE.CubeTextureLoader().load(
@@ -199,29 +197,30 @@ export class VirtualDrive {
   //加载3D模型
   load3dObj(startArea) {
     return new Promise((resolve, reject) => {
-      THREE.DRACOLoader.setDecoderPath('examples/js/libs/draco/gltf/');
+      THREE.DRACOLoader.setDecoderPath('car/js/libs/draco/gltf/');
       const loader = new THREE.GLTFLoader();
       loader.setDRACOLoader(new THREE.DRACOLoader());
       THREE.DRACOLoader.getDecoderModule();
       loader.load(
-        require('assets/ferrari.glb'),
+        require('assets/car/ferrari.glb'),
         gltf => {
           this.carModel = gltf.scene.children[0];
           const xy = this.translateVector(startArea.nodes[0]);
 
-          this.car.setModel(this.carModel, startArea.direction + 0.5, xy.x, xy.y);
+          this.car.setModel(this.carModel, startArea.direction, xy.x, xy.y);
           this.carModel.traverse(child => {
             if (child.isMesh) {
               child.material.envMap = this.envMap;
             }
           });
           // 阴影
-          var texture = new THREE.TextureLoader().load(require('assets/ferrari_ao.png'));
+          var texture = new THREE.TextureLoader().load(require('assets/car/ferrari_ao.png'));
           var shadow = new THREE.Mesh(
             new THREE.PlaneBufferGeometry(0.655 * 4, 1.3 * 4).rotateX(-Math.PI / 2),
             new THREE.MeshBasicMaterial({ map: texture, opacity: 0.8, transparent: true }),
           );
           shadow.renderOrder = 2;
+          shadow.position.set(0, 0.02, 0);
           this.carModel.add(shadow);
           this.scene.add(this.carModel);
 
@@ -286,11 +285,12 @@ export class VirtualDrive {
 
   //加载地图
   loadObstacles(obstacles) {
-    const color = 0x0dc3b4;
+    const color = 0x0000ff;
     if (obstacles) {
       const material = new THREE.MeshBasicMaterial({
         color,
-        opacity: 0.5,
+        opacity: 0.6,
+        depthWrite: false,
         transparent: true,
       });
       let mesh = null;
@@ -300,16 +300,12 @@ export class VirtualDrive {
           mesh = mesh.clone();
           mesh.geometry = new THREE.BoxGeometry(
             obj.dimension.width,
-            obj.dimension.height + 2,
+            obj.dimension.height,
             obj.dimension.length,
           );
         } else {
           mesh = new THREE.Mesh(
-            new THREE.BoxGeometry(
-              obj.dimension.width,
-              obj.dimension.height + 2,
-              obj.dimension.length,
-            ),
+            new THREE.BoxGeometry(obj.dimension.width, obj.dimension.height, obj.dimension.length),
             material,
           );
         }
@@ -334,14 +330,25 @@ export class VirtualDrive {
     //汽车位置，方向变化
     this.car.setChange(carOrientation, xy);
     if (this.followCamera) {
-      const x = this.carModel.position.x + 10 * Math.sin(carOrientation);
-      const z = this.carModel.position.z + 10 * Math.cos(carOrientation);
-      this.camera.position.set(x, this.carModel.position.y + 10, z);
-      this.camera.lookAt(
+      this.orbitControls.object.lookAt(
         this.carModel.position.x,
         this.carModel.position.y,
         this.carModel.position.z,
       );
+      this.orbitControls.target = this.carModel.position;
+
+      //汽车转弯时相机的相对位置
+      const x = this.carModel.position.x + 10 * Math.sin(carOrientation - Math.PI / 2);
+      const z = this.carModel.position.z + 10 * Math.cos(carOrientation - Math.PI / 2);
+      //控制器对相机的偏移
+      const _x = 0,
+        _y = 0,
+        _z = 0;
+
+      //控制器控制相机的位置
+      this.orbitControls.object.position.set(x + _x, this.carModel.position.y + 10 + _y, z + _z);
+
+      this.orbitControls.update();
     }
 
     //已行驶路径
@@ -352,8 +359,8 @@ export class VirtualDrive {
       }
       this.scene.remove(this.drivePath);
     }
-    this.drivePathPoint.push(xy.x, -0.3, xy.y);
-    this.refreshDrivePath(this.drivePathPoint, 0x9a32cd);
+    this.drivePathPoint.push(xy.x, 0.2, xy.y);
+    this.refreshDrivePath(this.drivePathPoint, 0xdc143c);
 
     //路径规划
     if (this.pathRoutingLine) {
@@ -376,14 +383,15 @@ export class VirtualDrive {
         this.scene.remove(obj);
       });
     }
-    this.refreshObject(objectArray, 0xb0e2ff);
+    //0x0dc3b4
+    this.refreshObject(objectArray, 0x228b22);
   }
 
   //-------路线材料，避免多次实例化--------
   lineMaterial = new THREE.LineMaterial({
-    color: 0xc1ffc1,
+    color: 0xcdcd00,
+    depthWrite: true,
     linewidth: 0.005, // in pixels
-    opacity: 0.5,
   });
 
   //刷新已行驶过的路径
@@ -392,9 +400,12 @@ export class VirtualDrive {
     geometry.setPositions(drivePathPoint);
     const meterial = this.lineMaterial.clone();
     if (color) {
-      meterial.setValues({ color });
+      meterial.setValues({
+        color,
+      });
     }
     this.drivePath = new THREE.Line2(geometry, meterial);
+    this.drivePath.renderOrder = 4;
     this.scene.add(this.drivePath);
   }
 
@@ -404,15 +415,19 @@ export class VirtualDrive {
       const arr = [];
       _.each(routingArray, xyz => {
         const xy = this.translateVector({ x: xyz.x, y: xyz.z });
-        arr.push(xy.x, xyz.y, xy.y);
+        arr.push(xy.x, 0, xy.y);
       });
 
       if (!this.pathRoutingLine) {
         const meterial = this.lineMaterial.clone();
         if (color) {
-          meterial.setValues({ color });
+          meterial.setValues({
+            color,
+            transparent: true,
+          });
         }
         this.pathRoutingLine = new THREE.Line2(new THREE.LineGeometry(), meterial);
+        this.pathRoutingLine.renderOrder = 3;
       }
       this.pathRoutingLine.geometry.setPositions(arr);
       this.scene.add(this.pathRoutingLine);
@@ -423,7 +438,7 @@ export class VirtualDrive {
   refreshObject(objectArray, color) {
     if (!_.isEmpty(objectArray)) {
       let mesh = null;
-      let material = new THREE.MeshBasicMaterial({ color, opacity: 0.8, transparent: true });
+      let material = new THREE.MeshBasicMaterial({ color, opacity: 0.7, transparent: true });
       _.each(objectArray, object => {
         let geometry = new THREE.BoxGeometry(object.width, object.height, object.length);
         if (mesh) {
@@ -499,10 +514,9 @@ export class VirtualDrive {
 
   //转换地图中心原点为左上角原点坐标
   translateVector(point) {
-    let xy = new THREE.Vector2();
-    xy.x = point.x - this.mapWH.map_width / 2;
-    xy.y = point.y - this.mapWH.map_height / 2;
-    return xy;
+    const x = point.x - this.mapWH.map_width / 2;
+    const y = point.y - this.mapWH.map_height / 2;
+    return { x, y };
   }
 }
 

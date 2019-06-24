@@ -60,12 +60,12 @@ export default THREE => {
         root.position.x = position.x;
         root.position.z = position.y;
         // 车的角度
-        root.rotation.y = carOrientation;
+        root.rotation.y = -Math.PI / 2 + carOrientation;
 
-        frontLeftWheel.rotation[this.wheelRotationAxis] -= 1;
-        frontRightWheel.rotation[this.wheelRotationAxis] -= 1;
-        backLeftWheel.rotation[this.wheelRotationAxis] -= 1;
-        backRightWheel.rotation[this.wheelRotationAxis] -= 1;
+        frontLeftWheel.rotation[this.wheelRotationAxis] += 2;
+        frontRightWheel.rotation[this.wheelRotationAxis] += 2;
+        backLeftWheel.rotation[this.wheelRotationAxis] += 2;
+        backRightWheel.rotation[this.wheelRotationAxis] += 2;
       },
       getPosition() {
         return { ...root.position };
