@@ -1,6 +1,6 @@
 import Stats from 'stats-js';
 import _ from 'lodash';
-import Orbitcontrols from 'three-orbitcontrols';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import Car from './CarFun.js';
 var THREE = (window.THREE = require('three'));
 require('three/examples/js/loaders/GLTFLoader');
@@ -86,14 +86,14 @@ export class VirtualDrive {
     camera.position.set(0, 70, 50);
 
     //角度控制
-    this.orbitControls = new Orbitcontrols(camera, renderer.domElement);
+    this.orbitControls = new OrbitControls(camera, renderer.domElement);
     this.orbitControls.target = new THREE.Vector3(0, 0, 0); //控制焦点
     this.orbitControls.autoRotate = false;
     this.orbitControls.zoomSpeed = 3;
     //上下翻转的最大仰视角和俯视角。范围0-Math.PI 弧度，一个pi代表180°
     this.orbitControls.minPolarAngle = 0;
     this.orbitControls.maxPolarAngle = 1.5;
-    this.orbitControls.addEventListener('change', function(e) {
+    this.orbitControls.addEventListener('change', function (e) {
       // this.azimuthalAngle = e.target.getAzimuthalAngle();
       // this.polarAngle = e.target.getPolarAngle();
       // console.log(this.azimuthalAngle, this.polarAngle);
@@ -272,13 +272,13 @@ export class VirtualDrive {
       premultipliedAlpha: true,
       name: 'clear',
     });
-    this.carParts.body.forEach(function(part) {
+    this.carParts.body.forEach(function (part) {
       part.material = bodyMat;
     });
-    this.carParts.rims.forEach(function(part) {
+    this.carParts.rims.forEach(function (part) {
       part.material = rimMat;
     });
-    this.carParts.glass.forEach(function(part) {
+    this.carParts.glass.forEach(function (part) {
       part.material = glassMat;
     });
   }
